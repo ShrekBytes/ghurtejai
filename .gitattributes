@@ -1,10 +1,19 @@
-# Mark Flutter Dart code as main
-*.dart linguist-language=Dart
+# Flutter / Dart files
+*.dart text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
 
-# Ignore platform-specific native code
+# Platform code (treated as vendored for GitHub stats)
 android/** linguist-vendored
 ios/** linguist-vendored
 linux/** linguist-vendored
 macos/** linguist-vendored
 windows/** linguist-vendored
 build/** linguist-vendored
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.ttf binary
+*.otf binary
