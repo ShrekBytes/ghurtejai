@@ -27,12 +27,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
-
-# VS Code (team-friendly)
-# Ignore personal/local workspace state, but keep shared project config.
 .vscode/*
-!.vscode/tasks.json
-!.vscode/launch.json
 
 # Android
 android/.gradle/
