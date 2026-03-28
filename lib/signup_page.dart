@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ghurtejai/login_page.dart';
 import 'gj_colors.dart';
+import 'profile_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -29,8 +29,9 @@ class _SignupPageState extends State<SignupPage> {
 
   String? get _usernameError {
     if (!_submitted) return null;
-    if (_userCtrl.text.trim().isEmpty) return 'Username is required';
-    if (_userCtrl.text.trim().length < 3) return 'At least 3 characters';
+    final v = _userCtrl.text.trim();
+    if (v.isEmpty) return 'Username is required';
+    if (v.length < 3) return 'At least 3 characters';
     return null;
   }
 
@@ -38,8 +39,8 @@ class _SignupPageState extends State<SignupPage> {
     if (!_submitted) return null;
     final v = _emailCtrl.text.trim();
     if (v.isEmpty) return 'Email is required';
-    final regex = RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w]{2,}$');
-    if (!regex.hasMatch(v)) return 'Enter a valid email address';
+    final ok = RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w]{2,}$').hasMatch(v);
+    if (!ok) return 'Enter a valid email address';
     return null;
   }
 
@@ -67,11 +68,10 @@ class _SignupPageState extends State<SignupPage> {
   void _onCreate() {
     setState(() => _submitted = true);
     if (_isValid) {
-      // Replace entire stack → go to Profile
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+        (_) => false,
       );
     }
   }
@@ -94,10 +94,10 @@ class _SignupPageState extends State<SignupPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // ── Header ──
+              // ── HEADER ────────────────────────────────────
               const GJHeader(showBack: true),
 
-              // ── Hero Card ──
+              // ── HERO CARD ─────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(18, 20, 18, 0),
                 height: 190,
@@ -111,22 +111,25 @@ class _SignupPageState extends State<SignupPage> {
                 ),
                 child: Stack(
                   children: [
+                    // Dot pattern
                     Positioned.fill(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(17),
                         child: CustomPaint(
                           painter: DotPatternPainter(
-                            color: GJ.dark.withValues(alpha: 0.07),
+                            color: GJ.dark.withOpacity(0.07),
                           ),
                         ),
                       ),
                     ),
+                    // Map illustration
                     Positioned.fill(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(17),
                         child: CustomPaint(painter: MapPainter()),
                       ),
                     ),
+                    // Text
                     const Positioned(
                       left: 22,
                       top: 26,
@@ -157,11 +160,13 @@ class _SignupPageState extends State<SignupPage> {
                         ],
                       ),
                     ),
+                    // Compass
                     const Positioned(
                       right: 16,
                       bottom: 8,
                       child: Text('🧭', style: TextStyle(fontSize: 68)),
                     ),
+                    // Badge
                     Positioned(
                       top: 14,
                       right: 100,
@@ -193,7 +198,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              // ── Form Card ──
+              // ── FORM CARD ─────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                 padding: const EdgeInsets.all(22),

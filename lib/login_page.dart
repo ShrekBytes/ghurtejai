@@ -11,22 +11,20 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailCtrl = TextEditingController();
+  final _identifierCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
   bool _obscure = true;
   bool _submitted = false;
 
   // ── Validation ────────────────────────────────────────────
-  String? get _emailError {
+  String? get _identifierError {
     if (!_submitted) return null;
-    final v = _emailCtrl.text.trim();
+    final v = _identifierCtrl.text.trim();
     if (v.isEmpty) return 'Email or username is required';
-
-    final isEmail = v.contains('@');
-    if (isEmail) {
-      final emailRegex = RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w]{2,}$');
-      if (!emailRegex.hasMatch(v)) return 'Enter a valid email address';
+    if (v.contains('@')) {
+      final ok = RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w]{2,}$').hasMatch(v);
+      if (!ok) return 'Enter a valid email address';
     } else {
       if (v.length < 3) return 'Username must be at least 3 characters';
       if (v.contains(' ')) return 'Username cannot contain spaces';
@@ -41,24 +39,22 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
-  bool get _isValid => _emailError == null && _passwordError == null;
+  bool get _isValid => _identifierError == null && _passwordError == null;
 
-  void _onSubmit() {
+  void _onLogin() {
     setState(() => _submitted = true);
     if (_isValid) {
-      // Remove all previous routes (covers both direct login AND
-      // the Create Account → Login → Profile flow)
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const ProfilePage()),
-        (route) => false,
+        (_) => false,
       );
     }
   }
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _identifierCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -71,10 +67,10 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // ── Header ──
+              // ── HEADER ────────────────────────────────────
               const GJHeader(),
 
-              // ── Hero Card ──
+              // ── HERO CARD ─────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(18, 20, 18, 0),
                 height: 210,
@@ -88,18 +84,21 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: Stack(
                   children: [
+                    // Dot pattern
                     Positioned.fill(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(17),
                         child: const CustomPaint(painter: DotPatternPainter()),
                       ),
                     ),
+                    // Mountains
                     Positioned.fill(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(17),
                         child: CustomPaint(painter: MountainPainter()),
                       ),
                     ),
+                    // Text
                     const Positioned(
                       left: 22,
                       top: 26,
@@ -130,6 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                     ),
+                    // Plane
                     Positioned(
                       right: 18,
                       top: 16,
@@ -138,6 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Text('🛫', style: TextStyle(fontSize: 48)),
                       ),
                     ),
+                    // Badge
                     Positioned(
                       top: 14,
                       right: 14,
@@ -169,7 +170,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              // ── Form Card ──
+              // ── FORM CARD ─────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                 padding: const EdgeInsets.all(22),
@@ -209,14 +210,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 22),
 
-                    // Email
+                    // Email / Username
                     GJTextField(
-                      controller: _emailCtrl,
+                      controller: _identifierCtrl,
                       label: 'Email / Username',
                       icon: Icons.alternate_email_rounded,
                       keyboardType: TextInputType.text,
                       focusColor: GJ.pink,
-                      errorText: _emailError,
+                      errorText: _identifierError,
                     ),
                     const SizedBox(height: 14),
 
@@ -253,11 +254,11 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Let's Go
+                    // Let's Go button
                     GJButton(
                       label: "Let's Go! →",
                       color: GJ.yellow,
-                      onTap: _onSubmit,
+                      onTap: _onLogin,
                     ),
                     const SizedBox(height: 16),
 
@@ -291,7 +292,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Create Account
+                    // Create Account button
                     GJButton(
                       label: 'Create an Account ↗',
                       color: GJ.green,
