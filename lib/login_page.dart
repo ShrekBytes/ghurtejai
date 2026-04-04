@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'gj_colors.dart';
 import 'signup_page.dart';
-import 'profile_page.dart';
+import 'explore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_isValid) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const ProfilePage()),
+        MaterialPageRoute(builder: (_) => const MainScaffold()),
         (_) => false,
       );
     }
