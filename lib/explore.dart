@@ -1,62 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'app_theme.dart';
+import 'experience_detail_page.dart';
+import 'experiences_page.dart';
+import 'models/experience_feed.dart';
 import 'profile_page.dart';
-
-// import 'explore_page.dart';
-// import 'experiences_page.dart';
-// import 'create_page.dart';
-// import 'profile_page.dart';
-
-// ─────────────────────────────────────────────
-//  DESIGN TOKENS
-// ─────────────────────────────────────────────
-class AppColors {
-  static const bg = Color(0xFF0F1117);
-  static const surface = Color(0xFF1A1D26);
-  static const surfaceHigh = Color(0xFF242837);
-  static const primary = Color(0xFFE8A045);
-  static const primarySoft = Color(0x33E8A045);
-  static const green = Color(0xFF3EBF7A);
-  static const greenSoft = Color(0x223EBF7A);
-  static const textPrimary = Color(0xFFF0EDE6);
-  static const textSub = Color(0xFF9097A8);
-  static const textMuted = Color(0xFF5A6070);
-  static const border = Color(0xFF2A2F3E);
-  static const aiGlow = Color(0xFF7C6FE0);
-  static const aiSoft = Color(0x337C6FE0);
-}
-
-class AppText {
-  static const display = TextStyle(
-    fontFamily: 'Georgia',
-    fontSize: 26,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.5,
-  );
-  static const title = TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    letterSpacing: 0.1,
-  );
-  static const body = TextStyle(
-    fontSize: 13,
-    color: AppColors.textSub,
-    height: 1.4,
-  );
-  static const label = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0.8,
-    color: AppColors.textMuted,
-  );
-  static const chip = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
-  );
-}
 
 // ─────────────────────────────────────────────
 //  DATA MODELS
@@ -210,17 +159,6 @@ final List<Experience> trendingExperiences = [
   ),
 ];
 
-final List<String> filterTags = [
-  "All",
-  "Beach",
-  "Mountain",
-  "Nature",
-  "Adventure",
-  "Food",
-  "Cultural",
-  "River",
-];
-
 // ─────────────────────────────────────────────
 //  ENTRY POINT
 // ─────────────────────────────────────────────
@@ -242,9 +180,7 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   final List<Widget> _pages = const [
     ExplorePage(),
-    _PlaceholderPage(
-      label: "Experiences",
-    ), // TODO: replace with ExperiencesPage()
+    ExperiencesPage(),
     _PlaceholderPage(label: "Create"), // TODO: replace with CreatePage()
     ProfilePage(),
   ];
@@ -419,7 +355,17 @@ class _ExplorePageState extends State<ExplorePage> {
               else ...[
                 _buildSectionLabel("Popular Destinations", onSeeAll: () {}),
                 _buildPopularDestinations(),
-                _buildSectionLabel("Trending Experiences", onSeeAll: () {}),
+                _buildSectionLabel(
+                  "Trending Experiences",
+                  onSeeAll: () {
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ExperiencesPage(),
+                      ),
+                    );
+                  },
+                ),
                 _buildTrendingExperiences(),
                 _buildAllDestinationsHeader(),
                 _buildFilterChips(),
@@ -738,7 +684,13 @@ class _ExplorePageState extends State<ExplorePage> {
         itemBuilder: (ctx, i) => _TrendingExpCard(
           exp: trendingExperiences[i],
           onTap: () {
-            // TODO: navigate to experience detail
+            final id = kTrendingExperienceIds[i];
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ExperienceDetailPage(experienceId: id),
+              ),
+            );
           },
         ),
       ),
