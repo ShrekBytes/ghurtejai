@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'app_theme.dart';
 import 'login_page.dart';
 
 void main() {
@@ -13,7 +15,7 @@ class GhurteJaiApp extends StatelessWidget {
     return MaterialApp(
       title: 'GhurteJai',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
+      theme: appDarkTheme(),
       home: const LoginPage(),
     );
   }
