@@ -11,6 +11,8 @@ class GJ {
   static const Color dark = Color(0xFF111111);
   static const Color white = Color(0xFFFAFAF7);
   static const Color offWhite = Color(0xFFF2F0E8);
+  static const Color purple = Color(0xFFD080FF);
+  static const Color orange = Color(0xFFFF914D);
 }
 
 // ─────────────────────────────────────────────────────────
@@ -593,4 +595,326 @@ class MapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_) => false;
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ CARD  (white card with 2px border and 3px offset shadow)
+// ─────────────────────────────────────────────────────────
+class GJCard extends StatelessWidget {
+  final Widget child;
+  final Color? backgroundColor;
+  final double borderRadius;
+  final double borderWidth;
+  final bool hasShadow;
+  final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap;
+
+  const GJCard({
+    super.key,
+    required this.child,
+    this.backgroundColor,
+    this.borderRadius = 12,
+    this.borderWidth = 2,
+    this.hasShadow = true,
+    this.padding,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final container = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? GJ.white,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: GJ.dark, width: borderWidth),
+        boxShadow: hasShadow
+            ? const [BoxShadow(offset: Offset(4, 4), color: GJ.dark)]
+            : null,
+      ),
+      child: child,
+    );
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: container);
+    }
+    return container;
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ CHIP  (filter / sort pill)
+// ─────────────────────────────────────────────────────────
+class GJChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color activeColor;
+
+  const GJChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.activeColor = GJ.yellow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? activeColor : GJ.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: GJ.dark, width: 2),
+          boxShadow: selected
+              ? const [BoxShadow(offset: Offset(2, 2), color: GJ.dark)]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: GJText.tiny.copyWith(fontSize: 11, color: GJ.dark),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ TAG PILL  (hashtag pill: #Beach)
+// ─────────────────────────────────────────────────────────
+class GJTagPill extends StatelessWidget {
+  final String tag;
+  final Color color;
+
+  const GJTagPill({
+    super.key,
+    required this.tag,
+    this.color = GJ.yellow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: GJ.dark, width: 1.5),
+      ),
+      child: Text(
+        '#$tag',
+        style: GJText.tiny.copyWith(fontSize: 10, color: GJ.dark),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ SECTION LABEL
+// ─────────────────────────────────────────────────────────
+class GJSectionLabel extends StatelessWidget {
+  final String title;
+  final Color accent;
+  final VoidCallback? onSeeAll;
+
+  const GJSectionLabel({
+    super.key,
+    required this.title,
+    this.accent = GJ.yellow,
+    this.onSeeAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+      child: Row(
+        children: [
+          Container(width: 4, height: 20, color: accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: GJText.label.copyWith(fontSize: 14),
+            ),
+          ),
+          if (onSeeAll != null)
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Text(
+                'See all →',
+                style: GJText.tiny.copyWith(
+                  color: GJ.dark,
+                  decoration: TextDecoration.underline,
+                  decorationColor: GJ.dark,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ PAGE HEADER  (top bar used by all pages)
+// ─────────────────────────────────────────────────────────
+class GJPageHeader extends StatelessWidget {
+  final String pageTitle;
+  final bool showBack;
+  final bool showBell;
+  final VoidCallback? onBell;
+
+  const GJPageHeader({
+    super.key,
+    required this.pageTitle,
+    this.showBack = false,
+    this.showBell = false,
+    this.onBell,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+            child: Row(
+              children: [
+                if (showBack)
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: GJ.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: GJ.dark, width: 2),
+                        boxShadow: const [
+                          BoxShadow(offset: Offset(2, 2), color: GJ.dark),
+                        ],
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: GJ.dark, size: 18),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: GJ.dark,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'GJ',
+                        style: TextStyle(
+                          fontFamily: 'Courier',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: GJ.yellow,
+                        ),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    pageTitle,
+                    style: GJText.label.copyWith(fontSize: 15),
+                  ),
+                ),
+                if (showBell)
+                  GestureDetector(
+                    onTap: onBell,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: GJ.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: GJ.dark, width: 2),
+                        boxShadow: const [
+                          BoxShadow(offset: Offset(2, 2), color: GJ.dark),
+                        ],
+                      ),
+                      child: const Icon(Icons.notifications_outlined,
+                          color: GJ.dark, size: 18),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Container(height: 3, color: GJ.dark),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  GJ SEARCH BAR
+// ─────────────────────────────────────────────────────────
+class GJSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String hintText;
+  final ValueChanged<String>? onChanged;
+
+  const GJSearchBar({
+    super.key,
+    required this.controller,
+    this.focusNode,
+    this.hintText = 'Search...',
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: GJ.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: GJ.dark, width: 2),
+        boxShadow: const [BoxShadow(offset: Offset(3, 3), color: GJ.dark)],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 14),
+          const Icon(Icons.search_rounded, color: GJ.dark, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              onChanged: onChanged,
+              style: GJText.body.copyWith(fontSize: 14, color: GJ.dark),
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: GJText.body.copyWith(
+                  color: GJ.dark.withValues(alpha: 0.35),
+                  fontSize: 13,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14),
+                filled: false,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ),
+    );
+  }
 }

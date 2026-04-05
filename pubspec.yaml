@@ -58,28 +58,7 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-      - images/cox/cox_popular1.jpg
-      - images/cox/cox_popular2.jpg
-      - images/cox/cox_popular3.jpg
-      - images/cox/cox_popular4.jpg
-      - images/cox/cox_trend.jpg
-      - images/sylhet/syl_trend.jpg
-      - images/sylhet/syl_popular1.jpg
-      - images/sylhet/syl_popular2.jpg
-      - images/sylhet/syl_popular3.jpg
-      - images/sylhet/syl_popular4.jpg
-      - images/sundarban/sund_pop1.jpg
-      - images/sundarban/sund_pop2.png
-      - images/sundarban/sund_pop3.jpg
-      - images/sundarban/sund_pop4.webp
-      - images/sundarban/sund_trend.jpg
-      - images/bandarban/band_trend.jpg
-      - images/bandarban/band_pop1.jpg
-      - images/bandarban/band_pop2.jpg
-      - images/bandarban/band_pop3.jpg
-      - images/bandarban/band_pop4.jpg
-
+  # assets:
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

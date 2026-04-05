@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import '../gj_colors.dart';
 
-/// Matches [AppColors] from explore.dart without importing it (avoids import cycles).
+/// Neobrutalism-compatible placeholder colors (light background, dark borders).
 class _C {
-  static const surfaceHigh = Color(0xFF242837);
-  static const textMuted = Color(0xFF5A6070);
-  static const border = Color(0xFF2A2F3E);
+  static const border = GJ.dark;
 }
 
 /// Small filmstrip collage (4 slots) for experience cards.
@@ -125,8 +124,13 @@ class ExperienceCollageHero extends StatelessWidget {
 
   Widget _rounded(Widget child) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: child,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: _C.border, width: 1),
+        ),
+        child: child,
+      ),
     );
   }
 
@@ -145,31 +149,29 @@ class ExperienceAssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (path.isEmpty) {
-      return ColoredBox(
-        color: _C.surfaceHigh,
+    // Generate a consistent pseudo-random neobrutalist color from the path
+    final cList = [GJ.yellow, GJ.pink, GJ.green, GJ.blue, GJ.orange, GJ.purple];
+    final color = cList[path.hashCode.abs() % cList.length];
+
+    if (path.isEmpty || !path.startsWith('http')) {
+      // Return a vibrant solid block for empty or broken local mock assets
+      return Container(
+        color: color,
         child: const Center(
-          child: Icon(
-            Icons.image_outlined,
-            color: _C.textMuted,
-            size: 22,
-          ),
+          child: Icon(Icons.landscape_rounded, color: GJ.dark, size: 28),
         ),
       );
     }
-    return Image.asset(
+
+    return Image.network(
       path,
       fit: fit,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => ColoredBox(
-        color: _C.surfaceHigh,
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: color,
         child: const Center(
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: _C.textMuted,
-            size: 22,
-          ),
+          child: Icon(Icons.broken_image_outlined, color: GJ.dark, size: 22),
         ),
       ),
     );

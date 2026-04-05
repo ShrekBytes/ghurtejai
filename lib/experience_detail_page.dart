@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-
-import 'app_theme.dart';
+import 'gj_colors.dart';
 import 'models/experience_feed.dart';
 import 'widgets/experience_collage.dart';
 
-const Color _kReportAccent = Color(0xFFFF4D8D);
-
+// ─────────────────────────────────────────────────────────
+//  EXPERIENCE DETAIL PAGE
+// ─────────────────────────────────────────────────────────
 class ExperienceDetailPage extends StatefulWidget {
   final String experienceId;
-
   const ExperienceDetailPage({super.key, required this.experienceId});
 
   @override
@@ -16,737 +15,709 @@ class ExperienceDetailPage extends StatefulWidget {
 }
 
 class _ExperienceDetailPageState extends State<ExperienceDetailPage> {
-  final ScrollController _scrollController = ScrollController();
-  final GlobalKey _commentsKey = GlobalKey();
-
-  late ExperienceDetail _detail;
-  late List<ExperienceComment> _comments;
   bool _bookmarked = false;
-  int _localUpvoteDelta = 0;
-  final Map<String, int> _commentVoteDelta = {};
-  final Map<String, bool> _replyOpen = {};
-
-  @override
-  void initState() {
-    super.initState();
-    final d = experienceDetailById(widget.experienceId);
-    if (d != null) {
-      _detail = d;
-      _comments = List<ExperienceComment>.from(d.comments);
-    } else {
-      _detail = ExperienceDetail(
-        summary: ExperienceFeedItem(
-          id: widget.experienceId,
-          title: 'Not found',
-          destinationName: '',
-          entryCount: 0,
-          attractions: 0,
-          costBdt: 0,
-          days: 0,
-          tags: const [],
-          upvotes: 0,
-          commentCount: 0,
-          coverImagePaths: const [],
-          createdAt: DateTime.now(),
-        ),
-        itinerary: const [],
-        comments: const [],
-      );
-      _comments = [];
-    }
-  }
+  bool _upvoted = false;
+  final _commentCtrl = TextEditingController();
+  final Map<String, int> _votes = {};
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _commentCtrl.dispose();
     super.dispose();
-  }
-
-  void _scrollToComments() {
-    final ctx = _commentsKey.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  void _onClone() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Clone will prefill Create — coming soon',
-          style: AppText.body.copyWith(color: AppColors.bg),
-        ),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _onReport(ExperienceComment c) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Report comment?', style: AppText.title),
-        content: Text(
-          'Flag this comment for review.',
-          style: AppText.body,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: AppText.body),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Reported', style: AppText.body),
-                  backgroundColor: AppColors.surfaceHigh,
-                ),
-              );
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: _kReportAccent,
-            ),
-            child: const Text('Report'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = _detail.summary;
-    if (s.title == 'Not found') {
+    final detail = experienceDetailById(widget.experienceId);
+    if (detail == null) {
       return Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(
-          backgroundColor: AppColors.bg,
-          foregroundColor: AppColors.textPrimary,
-          title: const Text('Experience'),
-        ),
+        backgroundColor: GJ.offWhite,
         body: Center(
-          child: Text('Experience not found', style: AppText.body),
+          child: Text('Experience not found', style: GJText.label),
         ),
       );
     }
-
-    final upvotes = s.upvotes + _localUpvoteDelta;
+    final exp = detail.summary;
+    final itinerary = detail.itinerary;
+    final comments = detail.comments;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -80,
-            left: -60,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.07),
-                    Colors.transparent,
+      backgroundColor: GJ.offWhite,
+      body: CustomScrollView(
+        slivers: [
+          // ── Header with collage ──
+          SliverToBoxAdapter(
+            child: GJPageHeader(pageTitle: exp.title, showBack: true),
+          ),
+
+          // ── Collage hero ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: GJCard(
+                padding: const EdgeInsets.all(6),
+                child: ExperienceCollageHero(
+                  paths: exp.coverImagePaths,
+                  height: 220,
+                ),
+              ),
+            ),
+          ),
+
+          // ── Title + meta ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(exp.title,
+                      style: GJText.title.copyWith(fontSize: 20)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: GJ.green,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: GJ.dark, width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(offset: Offset(2, 2), color: GJ.dark),
+                          ],
+                        ),
+                        child: Text(
+                          exp.destinationName,
+                          style: GJText.tiny.copyWith(fontSize: 11),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (exp.author != null)
+                        Text(
+                          'by @${exp.author}',
+                          style: GJText.tiny.copyWith(
+                            color: GJ.dark.withValues(alpha: 0.5),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Stats strip ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: GJCard(
+                child: Row(
+                  children: [
+                    _statCell('${exp.days}', 'days', GJ.yellow, true),
+                    _statCell('${exp.entryCount}', 'entries', GJ.blue, false),
+                    _statCell('${exp.attractions}', 'spots', GJ.pink, false),
+                    _statCell(
+                        '৳${_fmt(exp.costBdt)}', 'est. cost', GJ.green, false),
                   ],
                 ),
               ),
             ),
           ),
-          CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 280,
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.textPrimary,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              s.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.title.copyWith(fontSize: 15),
-            ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 6, top: 8, bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${s.days}d',
-                  style: AppText.label.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  _bookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                  color: _bookmarked ? AppColors.primary : AppColors.textSub,
-                ),
-                onPressed: () => setState(() => _bookmarked = !_bookmarked),
-              ),
-              IconButton(
-                icon: const Icon(Icons.thumb_up_outlined),
-                onPressed: () => setState(() => _localUpvoteDelta += 1),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chat_bubble_outline_rounded),
-                onPressed: _scrollToComments,
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 72, 12, 16),
-                  child: ExperienceCollageHero(
-                    paths: s.coverImagePaths,
-                    height: 200,
-                  ),
-                ),
+
+          // ── Tags ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: exp.tags
+                    .map((t) => GJTagPill(tag: t, color: GJ.blue))
+                    .toList(),
               ),
             ),
           ),
+
+          // ── Action buttons ──
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _onClone,
-                      icon: const Icon(Icons.copy_all_rounded, size: 18),
-                      label: const Text('Clone'),
+                    child: _ActionButton(
+                      icon: Icons.thumb_up_alt_rounded,
+                      label: _upvoted
+                          ? 'Upvoted (${exp.upvotes + 1})'
+                          : 'Upvote (${exp.upvotes})',
+                      color: _upvoted ? GJ.yellow : GJ.white,
+                      onTap: () => setState(() => _upvoted = !_upvoted),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ActionButton(
+                      icon: _bookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_outline_rounded,
+                      label: _bookmarked ? 'Saved' : 'Save',
+                      color: _bookmarked ? GJ.pink : GJ.white,
+                      onTap: () => setState(() => _bookmarked = !_bookmarked),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.content_copy_rounded,
+                      label: 'Clone',
+                      color: GJ.green,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Itinerary cloned!',
+                                style: GJText.label),
+                            backgroundColor: GJ.yellow,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(
+                                  color: GJ.dark, width: 2),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
             ),
           ),
+
+          // ── Itinerary ──
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      s.destinationName,
-                      style: AppText.body.copyWith(
-                        color: AppColors.green,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                  Container(width: 4, height: 20, color: GJ.yellow),
+                  const SizedBox(width: 10),
+                  Text('Itinerary',
+                      style: GJText.label.copyWith(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _ItineraryEntry(
+                    entry: itinerary[i],
+                    isLast: i == itinerary.length - 1),
+                childCount: itinerary.length,
+              ),
+            ),
+          ),
+
+          // ── Comments ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              child: Row(
+                children: [
+                  Container(width: 4, height: 20, color: GJ.pink),
+                  const SizedBox(width: 10),
+                  Text(
+                      'Comments (${comments.length})',
+                      style: GJText.label.copyWith(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+          // Comment input
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: GJ.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: GJ.dark, width: 2),
+                      ),
+                      child: TextField(
+                        controller: _commentCtrl,
+                        style: GJText.body.copyWith(
+                            fontSize: 13, color: GJ.dark),
+                        decoration: InputDecoration(
+                          hintText: 'Add a comment...',
+                          hintStyle: GJText.body.copyWith(
+                            color: GJ.dark.withValues(alpha: 0.35),
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          filled: false,
+                        ),
                       ),
                     ),
                   ),
-                  if (s.author != null)
-                    Text(
-                      '@${s.author}',
-                      style: AppText.body.copyWith(fontSize: 12),
-                    ),
-                  Text(
-                    '·  $upvotes upvotes',
-                    style: AppText.label.copyWith(
-                      color: AppColors.textMuted,
-                      fontSize: 10,
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _commentCtrl.clear()),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: GJ.yellow,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: GJ.dark, width: 2),
+                        boxShadow: const [
+                          BoxShadow(offset: Offset(2, 2), color: GJ.dark),
+                        ],
+                      ),
+                      child: const Icon(Icons.send_rounded,
+                          color: GJ.dark, size: 18),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: _StatRow(summary: s),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Text('Itinerary', style: AppText.title.copyWith(fontSize: 17)),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, i) {
-                final e = _detail.itinerary[i];
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                  child: _ItineraryCard(entry: e),
-                );
-              },
-              childCount: _detail.itinerary.length,
-            ),
-          ),
-          SliverToBoxAdapter(
-            key: _commentsKey,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Text(
-                'Comments',
-                style: AppText.title.copyWith(fontSize: 17),
-              ),
-            ),
-          ),
-          if (_comments.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'No comments yet.',
-                  style: AppText.body,
-                ),
-              ),
-            )
-          else
-            SliverList(
+          // Comment list
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+            sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final c = _comments[i];
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                    child: _CommentTile(
-                      comment: c,
-                      voteDelta: _commentVoteDelta[c.id] ?? 0,
-                      onUp: () => setState(() {
-                        _commentVoteDelta[c.id] =
-                            (_commentVoteDelta[c.id] ?? 0) + 1;
-                      }),
-                      onDown: () => setState(() {
-                        _commentVoteDelta[c.id] =
-                            (_commentVoteDelta[c.id] ?? 0) - 1;
-                      }),
-                      replyOpen: _replyOpen[c.id] ?? false,
-                      onToggleReply: () => setState(() {
-                        _replyOpen[c.id] = !(_replyOpen[c.id] ?? false);
-                      }),
-                      onSubmitReply: (text) {
-                        setState(() {
-                          _comments.add(
-                            ExperienceComment(
-                              id: 'local_${DateTime.now().millisecondsSinceEpoch}',
-                              author: 'you',
-                              body: text,
-                              upvotes: 1,
-                              downvotes: 0,
-                              createdAt: DateTime.now(),
-                              parentId: c.id,
-                            ),
-                          );
-                          _replyOpen[c.id] = false;
-                        });
-                      },
-                      onReport: () => _onReport(c),
-                      nested: c.parentId != null,
-                    ),
+                (_, i) {
+                  final c = comments[i];
+                  final vote = _votes[c.id] ?? 0;
+                  return _CommentTile(
+                    comment: c,
+                    userVote: vote,
+                    onUpvote: () => setState(() {
+                      _votes[c.id] = vote == 1 ? 0 : 1;
+                    }),
+                    onDownvote: () => setState(() {
+                      _votes[c.id] = vote == -1 ? 0 : -1;
+                    }),
                   );
                 },
-                childCount: _comments.length,
+                childCount: comments.length,
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
           ),
         ],
       ),
     );
   }
+
+  Widget _statCell(
+      String val, String label, Color accent, bool first) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: first
+              ? null
+              : const Border(left: BorderSide(color: GJ.dark, width: 1)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: GJ.dark, width: 1.5),
+              ),
+              child: Text(val,
+                  style: GJText.label.copyWith(fontSize: 12)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GJText.tiny.copyWith(
+                color: GJ.dark.withValues(alpha: 0.5),
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmt(int p) {
+    if (p >= 1000) {
+      final k = p / 1000;
+      return '${k == k.truncateToDouble() ? k.toInt() : k.toStringAsFixed(1)}k';
+    }
+    return '$p';
+  }
 }
 
-class _StatRow extends StatelessWidget {
-  final ExperienceFeedItem summary;
+// ─────────────────────────────────────────────────────────
+//  ACTION BUTTON
+// ─────────────────────────────────────────────────────────
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _StatRow({required this.summary});
-
-  String _k(int v) => v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}k' : '$v';
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _cell(
-              Icons.place_outlined,
-              '${summary.attractions}',
-              'Attractions',
-            ),
-          ),
-          _sep(),
-          Expanded(
-            child: _cell(
-              Icons.article_outlined,
-              '${summary.entryCount}',
-              'Entries',
-            ),
-          ),
-          _sep(),
-          Expanded(
-            child: _cell(
-              Icons.payments_outlined,
-              '৳${_k(summary.costBdt)}',
-              'Cost',
-            ),
-          ),
-          _sep(),
-          Expanded(
-            child: _cell(
-              Icons.calendar_today_rounded,
-              '${summary.days}',
-              'Days',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sep() => Container(
-        width: 1,
-        height: 36,
-        color: AppColors.border,
-      );
-
-  Widget _cell(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, size: 16, color: AppColors.textSub),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: AppText.title.copyWith(fontSize: 13),
-          textAlign: TextAlign.center,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: GJ.dark, width: 2),
+          boxShadow: const [BoxShadow(offset: Offset(2, 2), color: GJ.dark)],
         ),
-        Text(
-          label,
-          style: AppText.label.copyWith(fontSize: 8),
-          textAlign: TextAlign.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: GJ.dark),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                style: GJText.tiny.copyWith(fontSize: 10),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class _ItineraryCard extends StatelessWidget {
+// ─────────────────────────────────────────────────────────
+//  ITINERARY ENTRY TILE
+// ─────────────────────────────────────────────────────────
+class _ItineraryEntry extends StatelessWidget {
   final ItineraryEntry entry;
+  final bool isLast;
 
-  const _ItineraryCard({required this.entry});
+  const _ItineraryEntry({required this.entry, required this.isLast});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
+    return IntrinsicHeight(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Timeline column
+          Column(
             children: [
               Container(
                 width: 28,
                 height: 28,
-                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
+                  color: GJ.yellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: GJ.dark, width: 2),
+                  boxShadow: const [
+                    BoxShadow(offset: Offset(2, 2), color: GJ.dark),
+                  ],
                 ),
-                child: Text(
-                  '${entry.order}',
-                  style: AppText.title.copyWith(fontSize: 14),
+                child: Center(
+                  child: Text(
+                    '${entry.order}',
+                    style: GJText.tiny.copyWith(fontSize: 11),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: GJ.dark.withValues(alpha: 0.15),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          // Card
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: GJCard(
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(entry.title, style: AppText.title.copyWith(fontSize: 15)),
-                    if (entry.timeStart != null || entry.timeEnd != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          [
-                            if (entry.timeStart != null) entry.timeStart,
-                            if (entry.timeEnd != null) entry.timeEnd,
-                          ].join(' → '),
-                          style: AppText.label.copyWith(
-                            color: AppColors.primary,
-                            fontSize: 10,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            entry.title,
+                            style: GJText.label.copyWith(fontSize: 13),
+                          ),
+                        ),
+                        if (entry.timeStart != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: GJ.blue,
+                              borderRadius: BorderRadius.circular(4),
+                              border:
+                                  Border.all(color: GJ.dark, width: 1.5),
+                            ),
+                            child: Text(
+                              entry.timeStart!,
+                              style: GJText.tiny.copyWith(fontSize: 9),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      entry.body,
+                      style: GJText.body.copyWith(
+                          color: GJ.dark.withValues(alpha: 0.65),
+                          fontSize: 12),
+                    ),
+                    if (entry.note.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: GJ.yellow.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(6),
+                          border:
+                              Border.all(color: GJ.dark.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('💡 ', style: TextStyle(fontSize: 11)),
+                            Expanded(
+                              child: Text(
+                                entry.note,
+                                style: GJText.tiny.copyWith(
+                                  fontSize: 10,
+                                  color: GJ.dark.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: GJ.green,
+                            borderRadius: BorderRadius.circular(4),
+                            border:
+                                Border.all(color: GJ.dark, width: 1.5),
+                            boxShadow: const [
+                              BoxShadow(
+                                  offset: Offset(1, 1), color: GJ.dark),
+                            ],
+                          ),
+                          child: Text(
+                            entry.costLabel,
+                            style: GJText.tiny.copyWith(fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Entry images
+                    if (entry.imagePaths.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 70,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: entry.imagePaths.length,
+                          itemBuilder: (_, i) => Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                width: 70,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: GJ.dark, width: 1.5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: ExperienceAssetImage(
+                                    path: entry.imagePaths[i]),
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(entry.body, style: AppText.body),
-          const SizedBox(height: 8),
-          Text(
-            'Cost: ${entry.costLabel}',
-            style: AppText.title.copyWith(
-              color: AppColors.primary,
-              fontSize: 13,
             ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Text(
-              entry.note,
-              style: AppText.body.copyWith(fontSize: 12, height: 1.45),
-            ),
-          ),
-          if (entry.imagePaths.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 140,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: entry.imagePaths.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 200,
-                      child: ExperienceAssetImage(path: entry.imagePaths[i]),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _CommentTile extends StatefulWidget {
+// ─────────────────────────────────────────────────────────
+//  COMMENT TILE
+// ─────────────────────────────────────────────────────────
+class _CommentTile extends StatelessWidget {
   final ExperienceComment comment;
-  final int voteDelta;
-  final VoidCallback onUp;
-  final VoidCallback onDown;
-  final bool replyOpen;
-  final VoidCallback onToggleReply;
-  final void Function(String text) onSubmitReply;
-  final VoidCallback onReport;
-  final bool nested;
+  final int userVote;
+  final VoidCallback onUpvote;
+  final VoidCallback onDownvote;
 
   const _CommentTile({
     required this.comment,
-    required this.voteDelta,
-    required this.onUp,
-    required this.onDown,
-    required this.replyOpen,
-    required this.onToggleReply,
-    required this.onSubmitReply,
-    required this.onReport,
-    this.nested = false,
+    required this.userVote,
+    required this.onUpvote,
+    required this.onDownvote,
   });
 
   @override
-  State<_CommentTile> createState() => _CommentTileState();
-}
-
-class _CommentTileState extends State<_CommentTile> {
-  final _replyCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _replyCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final c = widget.comment;
-    final score = c.score + widget.voteDelta;
-    final initial = c.author.isNotEmpty
-        ? c.author[0].toUpperCase()
-        : '?';
-
-    return Container(
-      margin: EdgeInsets.only(left: widget.nested ? 20 : 0),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+    final score = comment.score + userVote;
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: 10,
+        left: comment.parentId != null ? 24 : 0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppColors.primarySoft,
-                child: Text(
-                  initial,
-                  style: AppText.title.copyWith(fontSize: 13),
+      child: GJCard(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: GJ.yellow,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: GJ.dark, width: 1.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      comment.author[0].toUpperCase(),
+                      style: GJText.tiny.copyWith(fontSize: 12),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
+                const SizedBox(width: 8),
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('@${comment.author}',
+                        style: GJText.label.copyWith(fontSize: 12)),
                     Text(
-                      c.author,
-                      style: AppText.title.copyWith(fontSize: 13),
-                    ),
-                    Text(
-                      c.body,
-                      style: AppText.body.copyWith(fontSize: 12),
+                      '${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}',
+                      style: GJText.tiny.copyWith(
+                        fontSize: 9,
+                        color: GJ.dark.withValues(alpha: 0.4),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                '$score',
-                style: AppText.label.copyWith(fontSize: 11),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                icon: const Icon(Icons.arrow_upward_rounded, size: 18),
-                color: AppColors.textSub,
-                onPressed: widget.onUp,
-              ),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                icon: const Icon(Icons.arrow_downward_rounded, size: 18),
-                color: AppColors.textSub,
-                onPressed: widget.onDown,
-              ),
-              TextButton(
-                onPressed: widget.onToggleReply,
-                child: Text(
-                  'Reply',
-                  style: AppText.body.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onReport,
-                child: Text(
-                  'Report',
-                  style: AppText.body.copyWith(
-                    color: _kReportAccent,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (widget.replyOpen) ...[
-            const SizedBox(height: 8),
-            TextField(
-              controller: _replyCtrl,
-              maxLines: 2,
-              style: AppText.body.copyWith(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'Write a reply…',
-                hintStyle: AppText.body.copyWith(fontSize: 12),
-                filled: true,
-                fillColor: AppColors.surfaceHigh,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
+              ],
             ),
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () {
-                  final t = _replyCtrl.text.trim();
-                  if (t.isEmpty) return;
-                  widget.onSubmitReply(t);
-                  _replyCtrl.clear();
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.bg,
+            Text(
+              comment.body,
+              style: GJText.body.copyWith(
+                  color: GJ.dark.withValues(alpha: 0.75), fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _VoteButton(
+                  icon: Icons.arrow_upward_rounded,
+                  active: userVote == 1,
+                  activeColor: GJ.green,
+                  onTap: onUpvote,
                 ),
-                child: const Text('Post'),
-              ),
+                const SizedBox(width: 4),
+                Text(
+                  '$score',
+                  style: GJText.tiny.copyWith(
+                    color: score > 0
+                        ? GJ.green
+                        : score < 0
+                            ? GJ.pink
+                            : GJ.dark,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                _VoteButton(
+                  icon: Icons.arrow_downward_rounded,
+                  active: userVote == -1,
+                  activeColor: GJ.pink,
+                  onTap: onDownvote,
+                ),
+              ],
             ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VoteButton extends StatelessWidget {
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _VoteButton({
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 28,
+        height: 22,
+        decoration: BoxDecoration(
+          color: active ? activeColor : GJ.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: GJ.dark, width: 1.5),
+        ),
+        child: Icon(icon, size: 12, color: GJ.dark),
       ),
     );
   }

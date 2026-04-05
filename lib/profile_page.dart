@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'gj_colors.dart';
 import 'login_page.dart';
+import 'notifications_page.dart';
 
 // ─────────────────────────────────────────────────────────
 //  DATA MODEL
 // ─────────────────────────────────────────────────────────
-class Destination {
+class _ProfileExpCard {
   final String name;
   final String username;
   final String imageUrl;
@@ -15,7 +16,7 @@ class Destination {
   final int price;
   final int upvotes;
 
-  const Destination({
+  const _ProfileExpCard({
     required this.name,
     required this.username,
     required this.imageUrl,
@@ -27,8 +28,8 @@ class Destination {
   });
 }
 
-const List<Destination> kExperiences = [
-  Destination(
+const List<_ProfileExpCard> _kExperiences = [
+  _ProfileExpCard(
     name: 'Sundarbans',
     username: '@rafi_explores',
     // Dense forest / mangrove — reliable Unsplash photo
@@ -40,7 +41,7 @@ const List<Destination> kExperiences = [
     price: 4500,
     upvotes: 142,
   ),
-  Destination(
+  _ProfileExpCard(
     name: "Cox's Bazar",
     username: '@rafi_explores',
     imageUrl:
@@ -51,7 +52,7 @@ const List<Destination> kExperiences = [
     price: 6200,
     upvotes: 289,
   ),
-  Destination(
+  _ProfileExpCard(
     name: 'Sajek Valley',
     username: '@rafi_explores',
     imageUrl:
@@ -62,7 +63,7 @@ const List<Destination> kExperiences = [
     price: 3800,
     upvotes: 97,
   ),
-  Destination(
+  _ProfileExpCard(
     name: 'Sreemangal',
     username: '@rafi_explores',
     imageUrl:
@@ -75,8 +76,8 @@ const List<Destination> kExperiences = [
   ),
 ];
 
-const List<Destination> kBookmarks = [
-  Destination(
+const List<_ProfileExpCard> _kBookmarks = [
+  _ProfileExpCard(
     name: 'Bhutan',
     username: '@travel_bd',
     imageUrl:
@@ -87,7 +88,7 @@ const List<Destination> kBookmarks = [
     price: 28000,
     upvotes: 431,
   ),
-  Destination(
+  _ProfileExpCard(
     name: 'Darjeeling',
     username: '@hillsaddict',
     imageUrl:
@@ -98,7 +99,7 @@ const List<Destination> kBookmarks = [
     price: 14000,
     upvotes: 318,
   ),
-  Destination(
+  _ProfileExpCard(
     name: 'Maldives',
     username: '@ocean_lover',
     imageUrl:
@@ -109,7 +110,7 @@ const List<Destination> kBookmarks = [
     price: 85000,
     upvotes: 762,
   ),
-  Destination(
+  _ProfileExpCard(
     name: 'Nepal',
     username: '@trek_nepal',
     imageUrl:
@@ -256,7 +257,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GJ.white,
+      backgroundColor: GJ.green,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -291,7 +292,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         Text(t('profile'), style: GJText.label),
                         const Spacer(),
                         GestureDetector(
-                          onTap: () {},
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationsPage()),
+                        ),
                           child: Icon(
                             _notifications
                                 ? Icons.notifications_rounded
@@ -316,11 +321,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
             // ── MY EXPERIENCES ────────────────────────────────
             SliverToBoxAdapter(child: _sectionLabel(t('experiences'), GJ.pink)),
-            SliverToBoxAdapter(child: _cardRow(kExperiences)),
+            SliverToBoxAdapter(child: _cardRow(_kExperiences)),
 
             // ── BOOKMARKS ─────────────────────────────────────
             SliverToBoxAdapter(child: _sectionLabel(t('bookmarks'), GJ.yellow)),
-            SliverToBoxAdapter(child: _cardRow(kBookmarks)),
+            SliverToBoxAdapter(child: _cardRow(_kBookmarks)),
 
             // ── SETTINGS ──────────────────────────────────────
             SliverToBoxAdapter(child: _buildSettings()),
@@ -535,7 +540,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ── Horizontal card row ───────────────────────────────────
-  Widget _cardRow(List<Destination> list) {
+  Widget _cardRow(List<_ProfileExpCard> list) {
     return SizedBox(
       height: 190,
       child: ListView.builder(
@@ -549,7 +554,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ── Destination card ──────────────────────────────────────
-  Widget _destCard(Destination d) {
+  Widget _destCard(_ProfileExpCard d) {
     return Container(
       width: 210,
       margin: const EdgeInsets.only(right: 12, bottom: 3),
@@ -568,7 +573,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Image.network(
                 d.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (context, error, stackTrace) => Container(
                   color: d.fallbackColor,
                   child: Center(
                     child: Column(

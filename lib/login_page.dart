@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'gj_colors.dart';
 import 'signup_page.dart';
-import 'explore.dart';
+import 'main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -268,7 +268,7 @@ class _LoginPageState extends State<LoginPage> {
                         Expanded(
                           child: Container(
                             height: 2,
-                            color: GJ.dark.withOpacity(0.12),
+                            color: GJ.dark.withValues(alpha: 0.12),
                           ),
                         ),
                         const Padding(
@@ -285,7 +285,7 @@ class _LoginPageState extends State<LoginPage> {
                         Expanded(
                           child: Container(
                             height: 2,
-                            color: GJ.dark.withOpacity(0.12),
+                            color: GJ.dark.withValues(alpha: 0.12),
                           ),
                         ),
                       ],

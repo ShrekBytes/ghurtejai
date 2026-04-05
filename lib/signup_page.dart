@@ -117,7 +117,7 @@ class _SignupPageState extends State<SignupPage> {
                         borderRadius: BorderRadius.circular(17),
                         child: CustomPaint(
                           painter: DotPatternPainter(
-                            color: GJ.dark.withOpacity(0.07),
+                            color: GJ.dark.withValues(alpha: 0.07),
                           ),
                         ),
                       ),
