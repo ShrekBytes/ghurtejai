@@ -1,15 +1,15 @@
 # Flutter / Dart
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub/
-.pub-cache/
-.packages
-build/
-coverage/
+flutter/.dart_tool/
+flutter/.flutter-plugins
+flutter/.flutter-plugins-dependencies
+flutter/.pub/
+flutter/.pub-cache/
+flutter/.packages
+flutter/build/
+flutter/coverage/
 
 # Generated docs
-doc/api/
+flutter/doc/api/
 
 # Logs and temporary files
 *.log
@@ -23,35 +23,35 @@ doc/api/
 Thumbs.db
 
 # IDE files
-.idea/
-*.iml
-*.ipr
-*.iws
+flutter/.idea/
+flutter/*.iml
+flutter/*.ipr
+flutter/*.iws
 .vscode/*
 
 # Android
-android/.gradle/
-android/local.properties
-android/captures/
-android/app/debug/
-android/app/profile/
-android/app/release/
+flutter/android/.gradle/
+flutter/android/local.properties
+flutter/android/captures/
+flutter/android/app/debug/
+flutter/android/app/profile/
+flutter/android/app/release/
 
 # iOS / macOS
-**/ios/Flutter/.last_build_id
-ios/Flutter/ephemeral/
-ios/Flutter/Generated.xcconfig
-ios/Flutter/flutter_export_environment.sh
-ios/.symlinks/
-ios/Pods/
+**/flutter/ios/Flutter/.last_build_id
+flutter/ios/Flutter/ephemeral/
+flutter/ios/Flutter/Generated.xcconfig
+flutter/ios/Flutter/flutter_export_environment.sh
+flutter/ios/.symlinks/
+flutter/ios/Pods/
 
-macos/Flutter/ephemeral/
-macos/Flutter/GeneratedPluginRegistrant.swift
-macos/Pods/
+flutter/macos/Flutter/ephemeral/
+flutter/macos/Flutter/GeneratedPluginRegistrant.swift
+flutter/macos/Pods/
 
 # Linux / Windows generated build files
-linux/flutter/ephemeral/
-windows/flutter/ephemeral/
+flutter/linux/flutter/ephemeral/
+flutter/windows/flutter/ephemeral/
 
 # Symbolication and obfuscation
 app.*.symbols
