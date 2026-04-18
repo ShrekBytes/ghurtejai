@@ -1,67 +1,59 @@
-# Flutter / Dart
-flutter/.dart_tool/
-flutter/.flutter-plugins
-flutter/.flutter-plugins-dependencies
-flutter/.pub/
-flutter/.pub-cache/
-flutter/.packages
-flutter/build/
-flutter/coverage/
-
-# Generated docs
-flutter/doc/api/
-
-# Logs and temporary files
-*.log
-*.tmp
-*.temp
-*.swp
-*.swo
-
-# OS files
+# === OS / editor ===
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# IDE files
-flutter/.idea/
-flutter/*.iml
-flutter/*.ipr
-flutter/*.iws
-.vscode/*
+.vscode/
+.idea/
+*.iml
 
-# Android
-flutter/android/.gradle/
-flutter/android/local.properties
-flutter/android/captures/
-flutter/android/app/debug/
-flutter/android/app/profile/
-flutter/android/app/release/
+# === Logs ===
+*.log
 
-# iOS / macOS
-**/flutter/ios/Flutter/.last_build_id
-flutter/ios/Flutter/ephemeral/
-flutter/ios/Flutter/Generated.xcconfig
-flutter/ios/Flutter/flutter_export_environment.sh
-flutter/ios/.symlinks/
-flutter/ios/Pods/
+# === Flutter / Dart ===
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
 
-flutter/macos/Flutter/ephemeral/
-flutter/macos/Flutter/GeneratedPluginRegistrant.swift
-flutter/macos/Pods/
+# Build outputs
+build/
+**/build/
 
-# Linux / Windows generated build files
-flutter/linux/flutter/ephemeral/
-flutter/windows/flutter/ephemeral/
+# Test / coverage
+coverage/
 
-# Symbolication and obfuscation
-app.*.symbols
-app.*.map.json
+# Android / Gradle (Flutter already has per-platform ignores too)
+**/.gradle/
+**/local.properties
 
-# Misc VCS / tooling remnants
-.history/
-.svn/
-.atom/
-.build/
-.buildlog/
-.swiftpm/
-migrate_working_dir/
+# iOS / Xcode
+**/DerivedData/
+**/Pods/
+**/Flutter/ephemeral/
+
+# === Python (backend) ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Environments / secrets
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Django-ish
+db.sqlite3
+staticfiles/
+media/
+

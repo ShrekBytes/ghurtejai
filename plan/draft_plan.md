@@ -1,11 +1,11 @@
 # GHURTEJAI
 
-**Product Specification — v1.2 Final**  
+**Product Specification — v1.3 (Matches Current Implementation)**  
 **Tour planning + experience sharing app for Bangladesh**
 
 **Stack:** Flutter + Django REST Framework + PostgreSQL + Redis + Celery + Cloudflare R2 + JWT
 
-**Version history:** v1.0 → v1.1 → v1.2 (merged & finalized)
+**Version history:** v1.0 → v1.1 → v1.2 → v1.3 (updated to match built implementation)
 
 ## 1. Terminology (Locked)
 
@@ -28,19 +28,19 @@ These terms are fixed across all code, documentation, and UI copy.
 - **Create**
 - **Profile**
 
-- Create tab opens the Experience builder directly — no intermediate landing page.
-- Bookmarks live inside Profile — no dedicated tab.
+- Create tab opens the Experience builder directly — no intermediate landing page. Guests are prompted to sign in via a dialog.
+- Bookmarks live inside Profile (tabbed layout) — no dedicated tab.
 
 ## 3. User Roles
 
 | Role     | Capabilities |
 |----------|--------------|
-| **Guest** | Browse Explore, Destinations, public Experiences. Device-only (local) bookmarks. Cannot interact or create. |
+| **Guest** | Browse Explore, Destinations, public Experiences. Cannot bookmark, interact, or create. Prompted to sign in for any action that requires authentication. |
 | **User**  | Full interaction: create, share, clone, bookmark, comment, upvote, submit attractions/destinations/transport. |
 | **Moderator** | Approve/reject: Destinations, Attractions, Transport, public Experiences. Must provide rejection reason. No Django Admin access. Assigned by Admin. |
 | **Admin** | Full approve/reject powers + Django Admin panel access. Can assign Moderator role. |
 
-> Guest bookmarks are stored on-device only (Flutter `shared_preferences` or similar). They are not synced to the server and are lost if the app is uninstalled.
+> Guest users do **not** have local/device bookmarks. Bookmarking requires signing in. This was simplified from the original plan.
 
 ## 4. Core System Rules
 
@@ -55,7 +55,7 @@ All user-generated content uses soft delete. Hard delete is never used in v1.
 
 - Soft-deleted records are hidden from all UI and API responses.
 - Retained in the database for moderation review and analytics.
-- Django manager override: default queryset always filters `is_deleted=False`.
+- Django manager override: default queryset always filters `is_deleted=False`. An `all_objects` manager provides access to all records including deleted ones.
 
 ### 4.2 Rejection Reason
 
@@ -67,7 +67,7 @@ Destination, Experience, and Tag all carry a `slug` field (unique, auto-generate
 
 ### 4.4 Estimated Cost Rule
 
-Estimated cost = sum of all entry costs where cost > 0. If no entries carry a cost, display **"N/A"**. Always labelled in the UI as **"Per person estimate"** to set correct expectations.
+Estimated cost = sum of all entry costs where cost > 0. If no entries carry a cost, display **"N/A"**. Always labelled in the UI as a cost estimate.
 
 ### 4.5 JWT Token Lifetimes
 
@@ -80,56 +80,69 @@ Dio interceptor silently catches 401 responses, calls the refresh endpoint, and 
 
 ## 5. Data Models
 
-### 5.1 Destination
+### 5.1 Division & District (Geography)
+
+| Model      | Fields |
+|------------|--------|
+| `Division` | `name`, `name_bn` |
+| `District` | `name`, `name_bn`, `division` (FK → Division) |
+
+Pre-seeded with all 8 divisions and 64 districts of Bangladesh via fixture data.
+
+### 5.2 Destination
 
 | Field              | Details |
 |--------------------|---------|
-| `name`             | Indexed. Unique name per region (future enforcement). |
+| `name`             | Indexed. |
 | `slug`             | Unique. Auto-generated from name. |
-| `cover_image`      | Stored on Cloudflare R2. |
-| `tags`             | Normalized (see Tag model). |
 | `description`      | Short description. |
-| `stats` (cached)   | `attraction_count`, `food_count`, `activity_count`, `experience_count` — cached in Redis. |
-| `status`           | `PENDING` \| `APPROVED` |
+| `cover_image`      | Stored on Cloudflare R2. |
+| `district`         | FK → District (nullable). Provides division info via district.division. |
+| `latitude`         | Decimal (9,6). Nullable. |
+| `longitude`        | Decimal (9,6). Nullable. |
+| `tags`             | M2M → Tag. |
+| `status`           | `PENDING` \| `APPROVED` \| `REJECTED` |
 | `rejection_reason` | String, nullable. Set when status → rejected. |
 | `created_by`       | FK → User |
 | `is_deleted` / `deleted_at` | Soft delete fields. |
 
-### 5.2 Attraction
+Stats (`attraction_count`, `experience_count`) are computed via `SerializerMethodField` at query time, not cached.
+
+### 5.3 Attraction
 
 | Field              | Details |
 |--------------------|---------|
 | `type`             | `PLACE` \| `FOOD` \| `ACTIVITY` |
 | `name`             | Display name. |
-| `normalized_name`  | Lowercase, trimmed — used for deduplication checks. |
+| `normalized_name`  | Lowercase, trimmed — set automatically on save for deduplication. |
 | `image`            | Stored on R2. |
 | `notes`            | Free text. |
 | `address`          | String. |
 | `price_range`      | String (e.g. ৳100–৳300). |
 | `destination`      | FK → Destination |
-| `status`           | `PENDING` \| `APPROVED` |
+| `status`           | `PENDING` \| `APPROVED` \| `REJECTED` |
 | `rejection_reason` | String, nullable. |
 | `created_by`       | FK → User |
 | `is_deleted` / `deleted_at` | Soft delete fields. |
 
-### 5.3 Transport
+### 5.4 Transport
 
 | Field              | Details |
 |--------------------|---------|
 | `destination`      | FK → Destination |
-| `from_location`    | String, normalized. |
-| `to_location`      | String, normalized. |
+| `from_location`    | String. |
+| `to_location`      | String. |
 | `type`             | `BUS` \| `AC_BUS` \| `TRAIN` \| `FLIGHT` \| `OTHER` |
 | `operator`         | Operator name. |
 | `cost`             | Decimal. |
 | `duration`         | Duration field. |
 | `departure_time`   | Time field. |
 | `start_point`      | String — exact boarding location. |
-| `status`           | `PENDING` \| `APPROVED` |
+| `status`           | `PENDING` \| `APPROVED` \| `REJECTED` |
 | `rejection_reason` | String, nullable. |
 | `is_deleted` / `deleted_at` | Soft delete fields. |
 
-### 5.4 Entry
+### 5.5 Entry
 
 | Field              | Details |
 |--------------------|---------|
@@ -137,27 +150,29 @@ Dio interceptor silently catches 401 responses, calls the refresh endpoint, and 
 | `time`             | Time of day for this entry. |
 | `cost`             | Decimal, optional. Included in estimated cost if > 0. |
 | `notes`            | Free text. |
-| `custom_fields`    | JSON key-value pairs for user-defined extra info. |
 | `attraction`       | FK → Attraction, nullable. Links entry to a known attraction. |
 | `day`              | FK → Day (nested inside Experience). |
+| `position`         | Integer. Order within the day. |
 | `is_deleted` / `deleted_at` | Soft delete fields. |
 
-### 5.5 Experience
+### 5.6 Experience
 
 | Field              | Details |
 |--------------------|---------|
 | `title`            | String. |
 | `slug`             | Unique. Auto-generated. |
+| `description`      | Text. |
 | `destination`      | FK → Destination |
 | `cover_image`      | Manual upload OR auto-generated 4-image collage (async via Celery → R2). |
 | `estimated_cost`   | Auto-computed. Sum of entry costs > 0, else `null` (displayed as N/A). |
 | `user_cost`        | Manual override — what the author actually spent. |
-| `days`             | Nested array of Days, each containing Entries. |
-| `status`           | `DRAFT` \| `PENDING_REVIEW` \| `PUBLISHED` |
+| `days`             | Nested: Days → Entries. Each Day has a `position` and optional `date`. |
+| `status`           | `DRAFT` \| `PENDING_REVIEW` \| `PUBLISHED` \| `REJECTED` |
 | `visibility`       | `PRIVATE` \| `PUBLIC` |
 | `rejection_reason` | String, nullable. Set when moderator rejects. |
 | `author`           | FK → User |
 | `cloned_from`      | FK → Experience, nullable. Stored internally, never shown in UI. |
+| `tags`             | M2M → Tag. |
 | `is_deleted` / `deleted_at` | Soft delete fields. |
 
 **Experience Status Flow**
@@ -165,9 +180,9 @@ Dio interceptor silently catches 401 responses, calls the refresh endpoint, and 
 | Action                          | Resulting Status |
 |---------------------------------|------------------|
 | Save for Myself (private)       | `DRAFT` — saved immediately, no approval. |
-| Share Experience (public)       | `PENDING_REVIEW` → Moderator/Admin reviews → `PUBLISHED` (or rejected with reason). |
+| Share Experience (public)       | `PENDING_REVIEW` → Moderator/Admin reviews → `PUBLISHED` (or `REJECTED` with reason). |
 
-### 5.6 Tag
+### 5.7 Tag
 
 | Field     | Details |
 |-----------|---------|
@@ -176,7 +191,17 @@ Dio interceptor silently catches 401 responses, calls the refresh endpoint, and 
 
 Tags are user-created freely. No moderation required. Applied to Destinations and Experiences.
 
-### 5.7 Comment
+### 5.8 Vote (Experience Upvote)
+
+| Field          | Details |
+|----------------|---------|
+| `user`         | FK → User |
+| `experience`   | FK → Experience |
+| `created_at`   | Timestamp. |
+
+One vote per user per experience. Enforced via `unique_together(user, experience)`. Upvote only — no downvotes on experiences.
+
+### 5.9 Comment
 
 | Field     | Details |
 |-----------|---------|
@@ -184,13 +209,22 @@ Tags are user-created freely. No moderation required. Applied to Destinations an
 | `author`  | FK → User |
 | `text`    | Comment body. |
 | `parent`  | FK → Comment, nullable. 1-level nesting only (replies to comments, not replies to replies). |
-| `upvotes` | Integer counter. |
-| `downvotes` | Integer counter. |
 | `is_deleted` / `deleted_at` | Soft delete. When a parent is soft-deleted, its replies are also soft-deleted. |
 
-### 5.8 Report (Comment Reporting)
+Comment score is computed from the `CommentVote` model (see below).
 
-A dedicated Report model tracks user reports on comments. This gives moderators full context and supports multiple users reporting the same comment.
+### 5.10 CommentVote (Reddit-style)
+
+| Field       | Details |
+|-------------|---------|
+| `user`      | FK → User |
+| `comment`   | FK → Comment |
+| `value`     | SmallInt: `+1` (upvote) or `-1` (downvote). |
+| `created_at`| Timestamp. |
+
+Unique constraint on `(user, comment)`. Comment `score` = sum of upvotes minus downvotes, computed as a property on the Comment model.
+
+### 5.11 Report (Comment Reporting)
 
 | Field       | Details |
 |-------------|---------|
@@ -201,7 +235,7 @@ A dedicated Report model tracks user reports on comments. This gives moderators 
 
 Unique constraint on `(comment, reporter)` — a user can only report a comment once.
 
-### 5.9 Notification
+### 5.12 Notification
 
 **Types & Triggers**
 
@@ -221,16 +255,28 @@ Unique constraint on `(comment, reporter)` — a user can only report a comment 
 | `is_read`      | Boolean — default `False`. |
 | `created_at`   | Timestamp. |
 
-### 5.10 Bookmark
+Notifications are created automatically via Django signals.
 
-Two separate tables for cleaner queries and no polymorphic overhead:
+### 5.13 Bookmark
+
+Two separate tables for cleaner queries:
 
 | Table                    | Fields |
 |--------------------------|--------|
 | `bookmark_destinations`  | `user` (FK), `destination` (FK), `created_at`. Unique on `(user, destination)`. |
 | `bookmark_experiences`   | `user` (FK), `experience` (FK), `created_at`. Unique on `(user, experience)`. |
 
-Guest bookmarks: stored on-device only. When a guest signs up, the app prompts to migrate local bookmarks to the account on first login.
+Bookmarking requires authentication — guests are prompted to sign in.
+
+### 5.14 UserProfile
+
+| Field     | Details |
+|-----------|---------|
+| `user`    | OneToOne → User |
+| `bio`     | Text, blank. |
+| `avatar`  | Image, stored on R2. |
+
+Created alongside the user on registration.
 
 ## 6. Content Moderation
 
@@ -245,16 +291,15 @@ Guest bookmarks: stored on-device only. When a guest signs up, the app prompts t
 | Images (R2)              | User       | N/A in v1            |
 
 - All rejections must include a `rejection_reason` string.
-- Rejected content status: `REJECTED` (added alongside existing statuses).
+- Status values include `REJECTED` alongside `PENDING` / `APPROVED` (or `PUBLISHED` for experiences).
 - Submitting user is notified of approval or rejection via in-app notification.
-- Future v2: trusted users → auto-approval pathway.
 
 ## 7. Image Handling
 
 ### 7.1 Upload Safety (v1 Layer)
 
 - File type validation — only JPEG, PNG, WebP accepted.
-- File size limit — enforced server-side (recommended: 5 MB max).
+- File size limit — enforced server-side.
 - Upload rate limiting — custom DRF throttle on the image upload endpoint.
 - All images stored on Cloudflare R2, served via Cloudflare CDN.
 
@@ -277,82 +322,81 @@ Guest bookmarks: stored on-device only. When a guest signs up, the app prompts t
 - PostgreSQL full-text search via `django.contrib.postgres`.
 - Searches across: destination names, attraction names, experience titles.
 - Recent searches stored per user. Popular searches tracked globally.
-- Filter by type: **All** \| **Destinations** \| **Experiences**.
-- No AI search in v1.
+- Filter by type: **All** | **Destinations** | **Experiences**.
 
 ### 8.2 Abstraction Layer
 
-The search backend is wrapped in an abstraction layer so it can be swapped to Meilisearch or Typesense in v2 without touching the API contract. Search results are **NOT** cached in v1 — only trending and popular data are cached.
+The search backend is wrapped in an abstraction layer (`SearchBackend` base class with `PgSearchBackend` implementation) so it can be swapped to Meilisearch or Typesense in v2 without touching the API contract. Search results are **NOT** cached in v1.
 
 ## 9. Pages & Features
 
 ### 9.1 Explore Page
 
-- Hero carousel — popular/featured destinations.
-- Search bar — searches destination names, attraction names, experience titles.
-- Below bar: recent searches (per user) + global popular searches.
-- Filter results by type: **All** \| **Destinations** \| **Experiences**.
-- Category tag filter (horizontal scroll): #Beach #Mountain #Nature #Adventure #Food + user-created tags.
-- All Destinations section (grid) with **"See all →"** link.
-- Trending Experiences section (horizontal scroll, ranked by upvotes).
+- Floating/snapping SliverAppBar with branded "Ghurtejai" logo.
+- Search bar ("Where do you want to go?") → opens `showSearch` delegate with recent + popular suggestions.
+- Horizontal tag chips: #beach #mountain #nature #adventure #food + user-created tags.
+- **Destinations** section — horizontal scroll of destination cards (image with gradient overlay, name, district, stats). "See all →" link to All Destinations.
+- **Recent Experiences** section — Twitter-style experience cards (avatar, author, title, description, destination chip, engagement actions). "See all →" link to Experiences feed.
+- Pull-to-refresh on the entire page.
+- Notification bell in the app bar.
 
 ### 9.2 All Destinations Page
 
-- Search bar (destination filter pre-selected).
-- Filter chips: tags, division/district, days range, budget range.
-- Sort: asc/desc by budget, experience count, days.
-- Destination card: image collage, name, division/district, price range, experience count.
-- Pagination or dynamic (infinite) loading.
+- Filter by: division, district, tag (via `django-filter`).
+- Sort by: name, created date.
+- Destination cards with cover image, name, district, attraction + experience counts.
+- Pagination via DRF `StandardResultsPagination`.
 
-### 9.3 Destination Page
+### 9.3 Destination Detail Page
 
-- Header: cover image (collage of top attractions), name, tags.
-- Quick stats: Attractions count, Food count, Activities count, Experiences count.
-- Top Attractions — 2×2 grid cards (image, name, notes, address).
-- Top Foods — horizontal scroll (dish name, shop, price, address, note).
-- Top Activities — grid (image, name, note, address).
-- Getting There — search from→to, filter by transport type, sort, result cards (operator, times, cost, start point).
-- Cost & Duration estimate panel.
-- Top Experiences from this destination (cards).
-- CTAs: **[Create Experience]** **[Bookmark Destination]**
+- Header: cover image, name, tags, district/division info, coordinates.
+- Attractions list (approved only): type, name, notes, address, price range.
+- Transport options (approved only): from → to, type, operator, cost, duration, departure time, start point.
+- Related experiences from this destination.
+- Created by info.
 
 ### 9.4 Create Experience Page
 
-- Destination selector + title input.
-- Cover image: manual upload OR trigger async collage generation (Celery).
+- Destination selector (dropdown of approved destinations) + title input.
 - Day-by-day builder:
-  - Each day has a date + ordered list of entries.
-  - **[+ Add Entry]** → modal with attraction search (filter by Place / Food / Activity) OR **[+ Add Custom Entry]** (name, time, cost, notes, custom fields).
-  - **[+ Add Day]** button at the bottom.
-- Cost section: estimated cost (auto, labelled **"Per person estimate"**) + manual **"Your Cost"** field.
+  - Each day has an ordered list of entries.
+  - Each entry: name, time, cost, notes.
+  - **[+ Add Entry]** and **[+ Add Day]** buttons.
 - Visibility toggle: Private / Public.
-- Actions: **[Save for Myself]** → `DRAFT` (private, instant) \| **[Share Experience]** → `PENDING_REVIEW` (requires moderation).
+- Submit → `DRAFT` (private) or `PENDING_REVIEW` (public).
+- Guests are blocked before navigation: the MainScaffold shows a "Sign in required" dialog with a button that navigates to the login screen.
 
-### 9.5 Experiences Feed
+### 9.5 Experiences Feed (Twitter-style)
 
-- Cards show: cover image, title, destination, stats (entries, attractions, days, cost), tags, upvote count, comment count.
-- Per-card actions: Upvote, Bookmark, Clone.
-- Clone from feed: creates a full independent copy in the user's drafts immediately (no attribution shown).
-- Filters: tags, destination, days range, budget range.
-- Sort: **Popular** (default, by upvotes) \| **New** \| **Cost** \| **Duration**.
+- **Tab bar** with three tabs: **For You** (newest) | **Popular** (most upvoted) | **Budget** (lowest cost first).
+- Each experience rendered as a Twitter-style post:
+  - Author avatar + username + relative time ("3 hours ago").
+  - Bold title + description preview (3 lines).
+  - Destination/days/cost info chip.
+  - Hashtag tags inline.
+  - Action row: comment count, repost, upvote count, bookmark.
+- Thin dividers between posts. Edge-to-edge layout.
+- Pull-to-refresh per tab.
 
-### 9.6 Experience Page
+### 9.6 Experience Detail Page
 
 - Header: cover image, title, destination tag, author name (clickable → public profile).
-- Stats: attractions, entries, estimated cost, days.
-- Day-by-day timeline (times and costs per entry).
-- Attractions highlight section.
-- Actions: **[Clone]** **[Bookmark]** **[Upvote]** **[Comment]**
-- Clone: full deep copy into user's drafts. No attribution shown. Fully editable.
-- Comments: Reddit-style, 1-level nesting, upvote/downvote per comment, report button.
+- Day-by-day timeline with times and costs per entry.
+- Stats: estimated cost, user cost, day count.
+- Actions: **[Clone]** **[Bookmark]** **[Upvote]**
+- Clone: full deep copy into user's drafts. `cloned_from` FK stored internally. No attribution shown. Fully editable.
+- Comments section: 1-level nesting, Reddit-style upvote/downvote per comment, report button.
 
 ### 9.7 Profile Page
 
-- Header: avatar, name, username.
-- My Experiences grid — public experiences visible to others, private only to self.
-- Bookmarks section — saved destinations + experiences, **"See all"** link.
-- Settings: Language (EN/BN), Notifications on/off, Logout.
-- Edit Profile deferred to v2.
+- **Guest state:** Centered prompt with "Join Ghurtejai" heading, description, and two buttons: "Sign In" and "Create Account" — both navigate correctly to auth screens.
+- **Authenticated state:**
+  - Collapsing header with avatar, full name, @username.
+  - Stats row: experience count, bookmark count.
+  - **Tabbed layout:** "My Experiences" | "Bookmarks".
+  - My Experiences: Twitter-style cards of user's own experiences (all statuses).
+  - Bookmarks: saved destinations + saved experiences, each with navigation.
+  - App bar actions: notifications, moderation (for mod/admin roles), logout via popup menu.
 
 ### 9.8 Public Profile Page
 
@@ -362,15 +406,22 @@ The search backend is wrapped in an abstraction layer so it can be swapped to Me
 
 ### 9.9 Auth Pages
 
-- Login: email or username + password. Forgot password link.
-- Register: name, username, email, password, confirm password.
-- Continue as Guest option on both screens.
+- **Login:** Email + password. "Sign In" button, "Create Account" link, "Continue as Guest" text button.
+- **Register:** Full name, username, email, password, confirm password. "Create Account" button, "Already have an account? Sign In" link.
+- Authentication uses `USERNAME_FIELD = "email"` — login is email-based.
 
 ### 9.10 Notifications Page
 
 - In-app only in v1 (no push notifications).
 - Events: upvote on your experience, comment on your experience, reply to your comment, attraction approved, experience approved, experience rejected (with reason).
-- Mark as read. Unread count badge on the Profile tab icon.
+- Mark as read. Unread count available via API.
+- Accessed from the notification bell icon in the app bar.
+
+### 9.11 Moderation Page
+
+- Accessible to Moderator and Admin roles only (icon in profile app bar).
+- Lists pending content: destinations, attractions, experiences awaiting approval.
+- Approve or reject with mandatory rejection reason.
 
 ## 10. Tech Stack
 
@@ -379,39 +430,45 @@ The search backend is wrapped in an abstraction layer so it can be swapped to Me
 | Component          | Technology |
 |--------------------|----------|
 | Framework          | Django 5.x + Django REST Framework |
-| Database           | PostgreSQL |
-| Caching + Rate limiting | Redis via django-redis |
+| Database           | PostgreSQL 16 |
+| Caching + Rate limiting | Redis 7 via django-redis |
 | Task queue         | Celery + Redis broker |
 | Auth               | JWT via djangorestframework-simplejwt |
 | Image storage      | Cloudflare R2 via django-storages[s3] + boto3 |
 | Image processing   | Pillow (collage generation inside Celery task) |
-| Search             | django.contrib.postgres full-text search (abstracted for future swap) |
+| Search             | django.contrib.postgres full-text search (abstracted via SearchBackend) |
 | CORS               | django-cors-headers |
 | Filtering          | django-filter |
 | Admin panel        | Django Admin (built-in) |
 | API docs           | drf-spectacular (OpenAPI / Swagger) |
 | Environment        | python-decouple |
-| Throttling         | DRF built-in throttle classes, state stored in Redis |
+| Throttling         | DRF built-in throttle classes (custom: LoginRateThrottle, RegisterRateThrottle, UploadRateThrottle), state stored in Redis |
+| WSGI server        | Gunicorn (production) / Django dev server (development) |
+| DB driver          | psycopg 3 (`psycopg[binary]`) |
 
 ### 10.2 Backend pip packages
 
 ```text
-django  djangorestframework  djangorestframework-simplejwt  django-storages[s3]  boto3  django-redis  celery  django-cors-headers  django-filter  drf-spectacular  Pillow  psycopg2-binary  python-decouple
+django  djangorestframework  djangorestframework-simplejwt  django-storages[s3]  boto3  django-redis  celery  django-cors-headers  django-filter  drf-spectacular  Pillow  psycopg[binary]  python-decouple  gunicorn
 ```
 
 ### 10.3 Frontend (Flutter)
 
 | Component          | Technology |
 |--------------------|----------|
-| State management   | Riverpod (`flutter_riverpod`) |
-| HTTP client        | dio |
-| Auth token refresh | Dio interceptor — silently retries on 401, redirects to login only if refresh fails. |
+| State management   | Riverpod (`flutter_riverpod`, `riverpod_annotation`) |
+| HTTP client        | Dio |
+| Auth token refresh | Dio interceptor — silently retries on 401, redirects to login only if refresh fails. Web uses `BrowserHttpClientAdapter` for CORS. |
 | Auth storage       | `flutter_secure_storage` (JWT access + refresh token persistence) |
 | Image handling     | `cached_network_image`, `image_picker` |
 | Routing            | go_router |
-| UI                 | Material 3 |
-| Forms              | flutter_form_builder |
-| Guest bookmarks    | `shared_preferences` (device-only, not synced) |
+| UI                 | Material 3 (Material Design 3 with `ColorScheme.fromSeed`) |
+| Time formatting    | `timeago` |
+| Internationalization | `intl` |
+| Loading states     | `shimmer` |
+| Pagination         | `infinite_scroll_pagination` |
+| SVG support        | `flutter_svg` |
+| Code generation    | `freezed`, `json_serializable`, `build_runner`, `riverpod_generator` |
 
 ### 10.4 Infrastructure
 
@@ -419,67 +476,84 @@ django  djangorestframework  djangorestframework-simplejwt  django-storages[s3] 
 |--------------------|----------|
 | Image storage + CDN| Cloudflare R2 + Cloudflare CDN |
 | Containerization   | Docker + Docker Compose |
-| Web server         | Nginx (reverse proxy) |
-| App server         | Gunicorn |
-| Hosting            | VPS (DigitalOcean / Linode / Hetzner) or PaaS |
+| Web server (prod)  | Nginx (reverse proxy) |
+| App server (prod)  | Gunicorn |
 
 ### 10.5 Docker Compose Services
 
-| Service | Role |
-|---------|------|
-| `db`    | PostgreSQL |
-| `redis` | Redis |
-| `web`   | Django + Gunicorn |
-| `celery`| Celery worker (separate container, same Django image) |
-| `nginx` | Reverse proxy |
+**Development (`docker-compose.dev.yml`):**
+
+| Service  | Role |
+|----------|------|
+| `db`     | PostgreSQL 16 Alpine |
+| `redis`  | Redis 7 Alpine |
+| `web`    | Django dev server (runserver) |
+| `celery` | Celery worker (same Django image) |
+
+**Production (planned):**
+
+| Service  | Role |
+|----------|------|
+| `db`     | PostgreSQL |
+| `redis`  | Redis |
+| `web`    | Django + Gunicorn |
+| `celery` | Celery worker |
+| `nginx`  | Reverse proxy |
 
 ## 11. Redis Usage (Scoped for v1)
 
 | Purpose                     | Details |
 |-----------------------------|---------|
-| Cache: trending experiences | Ranked by upvotes. Invalidated on new upvote. |
-| Cache: popular destinations | Ranked by experience count + stats. Invalidated on new content. |
-| Cache: destination stats    | `attraction_count`, etc. per destination. |
 | Rate limiting state         | Login, register, image upload endpoints via DRF throttle classes. |
 | Celery broker               | Task queue for async collage generation. |
+| Django cache backend        | General cache framework configured with Redis. |
 
-> Search results are **NOT** cached in v1. Add caching here only after measuring real query latency in production.
+> Destination stats and trending data are computed at query time via serializer methods and database annotations, not cached in Redis in v1. Add caching after measuring real query latency in production.
 
 ## 12. API Throttling
 
-| Throttle class      | Applied to |
-|---------------------|------------|
-| `AnonRateThrottle`  | All unauthenticated (guest) requests. |
-| `UserRateThrottle`  | All authenticated user requests. |
-| Custom throttle     | Login endpoint, Register endpoint, Image upload endpoint (stricter limits). |
+| Throttle class         | Applied to |
+|------------------------|------------|
+| `AnonRateThrottle`     | All unauthenticated (guest) requests. |
+| `UserRateThrottle`     | All authenticated user requests. |
+| `LoginRateThrottle`    | Login endpoint (stricter limit). |
+| `RegisterRateThrottle` | Register endpoint (stricter limit). |
+| `UploadRateThrottle`   | Image upload endpoint (stricter limit). |
 
 ## 13. Business Logic Rules
 
 | Rule                        | Behaviour |
 |-----------------------------|-----------|
-| Estimated cost              | Sum of entry costs > 0. If none → display **"N/A"**. Labelled **"Per person estimate"** in UI. |
+| Estimated cost              | Sum of entry costs > 0. If none → display **"N/A"**. |
 | Experience clone            | Full deep copy into user's drafts. `cloned_from` FK stored internally. No attribution shown in UI. Fully independent and editable. |
 | Public experience visibility| Only **PUBLISHED** experiences appear on the feed and public profiles. |
 | Soft delete — experience    | `is_deleted=True`. All child days and entries also soft-deleted. Removed from all queries. |
 | Soft delete — comment with replies | `is_deleted=True` on parent comment. All replies also soft-deleted. |
 | JWT expiry                  | Access: 60 min. Refresh: 7 days. Dio interceptor silently refreshes on 401. Redirects to login only if refresh fails. |
-| Rejection                   | Rejection reason is mandatory. Stored on model. User notified via `EXPERIENCE_REJECTED` notification. |
-| Guest bookmarks             | Device-only (`shared_preferences`). Not synced to server. App prompts migration on first login after sign-up. |
+| Rejection                   | Rejection reason is mandatory. Stored on model. User notified via notification. |
+| Guest access                | Guests can browse all public content but cannot bookmark, comment, upvote, or create. Prompted to sign in for all protected actions. |
 | Tag normalization           | Tags are lowercased, trimmed, and deduplicated on save. Slugs auto-generated. |
+| Comment voting              | Reddit-style via separate `CommentVote` model. +1 or -1 per user per comment. Score = upvotes − downvotes. |
 | Comment report uniqueness   | A user can only submit one Report per comment. Enforced via `unique_together` constraint. |
+| Upvote on experience        | One upvote per user per experience via `Vote` model. Toggle behavior (upvote/remove). |
 
 ## 14. Deferred to v2
 
+- Google Sign-In / OAuth.
 - AI Search — natural language query → auto-set filters → results.
 - Image moderation AI — automated content safety scanning.
 - Follow / follower system.
 - Push notifications (in-app only for v1).
-- Export experience as PDF / shareable itinerary.
-- Edit Profile.
+- Export experience as PDF / shareable trip plan.
+- Edit Profile page.
+- Forgot password / password reset flow.
 - Offline mode / local drafts.
 - Reputation / trusted user system (auto-approval pathway).
 - Meilisearch or Typesense swap for full-text search.
+- Language switching (EN/BN).
+- Notification preferences (on/off).
+- Redis caching for destination stats and trending data.
 
 ---
 
-**GHURTEJAI — Product Spec v1.2 Final — Production-ready**
+**GHURTEJAI — Product Spec v1.3 — Matches Current Implementation**

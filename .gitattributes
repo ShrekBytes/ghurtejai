@@ -1,19 +1,29 @@
-# Flutter / Dart files
-*.dart text eol=lf
-*.yaml text eol=lf
-*.json text eol=lf
+# Auto-detect text files and normalize line endings (LF).
+* text=auto eol=lf
 
-# Platform code (treated as vendored for GitHub stats)
-android/** linguist-vendored
-ios/** linguist-vendored
-linux/** linguist-vendored
-macos/** linguist-vendored
-windows/** linguist-vendored
-build/** linguist-vendored
+# Windows scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
 
-# Binary files
+# Shell scripts explicitly LF.
+*.sh text eol=lf
+
+# Common binary formats
 *.png binary
 *.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
 *.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.7z binary
+
 *.ttf binary
 *.otf binary
+
+*.keystore binary
+*.jks binary
+
