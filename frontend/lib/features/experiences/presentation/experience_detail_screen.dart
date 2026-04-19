@@ -338,7 +338,8 @@ class _ExperienceDetailScreenState extends ConsumerState<ExperienceDetailScreen>
                     ),
                     style: GJText.body,
                   ),
-                  if ((d['user_cost'] as num?) != null)
+                  // DRF serializes DecimalField as JSON string, not num.
+                  if (d['user_cost'] != null)
                     Text(
                       appT(
                         context,
