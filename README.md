@@ -96,16 +96,16 @@ Update `lib/core/constants.dart` with your API base URL.
 
 | | |
 |---|---|
-| <img src="screenshots/6278275244044784276.jpg" height="300"> | <img src="screenshots/6278275244044784277.jpg" height="300"> |
-| <img src="screenshots/6278275244044784282.jpg" height="300"> | <img src="screenshots/6278275244044784283.jpg" height="300"> |
-| <img src="screenshots/6280496051374461332.jpg" height="300"> | <img src="screenshots/6280496051374461335.jpg" height="300"> |
-| <img src="screenshots/6280496051374461336.jpg" height="300"> | <img src="screenshots/6280527043858468962.jpg" height="300"> |
-| <img src="screenshots/6280527043858468963.jpg" height="300"> | <img src="screenshots/6280527043858468966.jpg" height="300"> |
-| <img src="screenshots/6280527043858468967.jpg" height="300"> | <img src="screenshots/6280527043858468968.jpg" height="300"> |
-| <img src="screenshots/6280527043858468969.jpg" height="300"> | <img src="screenshots/6280527043858468970.jpg" height="300"> |
-| <img src="screenshots/6280527043858468971.jpg" height="300"> | <img src="screenshots/6280527043858468973.jpg" height="300"> |
-| <img src="screenshots/6280527043858468974.jpg" height="300"> | <img src="screenshots/6280527043858468976.jpg" height="300"> |
-| <img src="screenshots/6280527043858468977.jpg" height="300"> | <img src="screenshots/6280527043858468978.jpg" height="300"> |
+| <img src="screenshots/6278275244044784276.jpg" height="555"> | <img src="screenshots/6278275244044784277.jpg" height="555"> |
+| <img src="screenshots/6278275244044784282.jpg" height="555"> | <img src="screenshots/6278275244044784283.jpg" height="555"> |
+| <img src="screenshots/6280496051374461332.jpg" height="555"> | <img src="screenshots/6280496051374461335.jpg" height="555"> |
+| <img src="screenshots/6280496051374461336.jpg" height="555"> | <img src="screenshots/6280527043858468962.jpg" height="555"> |
+| <img src="screenshots/6280527043858468963.jpg" height="555"> | <img src="screenshots/6280527043858468966.jpg" height="555"> |
+| <img src="screenshots/6280527043858468967.jpg" height="555"> | <img src="screenshots/6280527043858468968.jpg" height="555"> |
+| <img src="screenshots/6280527043858468969.jpg" height="555"> | <img src="screenshots/6280527043858468970.jpg" height="555"> |
+| <img src="screenshots/6280527043858468971.jpg" height="555"> | <img src="screenshots/6280527043858468973.jpg" height="555"> |
+| <img src="screenshots/6280527043858468974.jpg" height="555"> | <img src="screenshots/6280527043858468976.jpg" height="555"> |
+| <img src="screenshots/6280527043858468977.jpg" height="555"> | <img src="screenshots/6280527043858468978.jpg" height="555"> |
 
 ## License
 
